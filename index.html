@@ -1,0 +1,843 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GIMS FIND ID - Supabase Live</title>
+    <!-- Supabase JS CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        * { box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; padding: 0; }
+        body { background: #f0f4f8; padding: 15px; }
+        
+        .header { background: linear-gradient(135deg, #1e3a8a, #3b82f6); color: white; text-align: center; padding: 20px; border-radius: 16px; margin-bottom: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+        .header h1 { font-size: 26px; font-weight: 900; letter-spacing: 1px; }
+        .header h1 span { color: #facc15; }
+        
+        .card { background: white; padding: 20px; border-radius: 16px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); margin-bottom: 15px; }
+        .section-title { text-align: center; font-size: 22px; font-weight: 800; color: #1e293b; margin-bottom: 15px; text-transform: uppercase; letter-spacing: 1px; }
+        
+        input, select { width: 100%; padding: 12px 14px; margin: 6px 0 12px 0; border: 1.5px solid #cbd5e1; border-radius: 10px; font-size: 15px; outline: none; background: #fff; }
+        input:focus, select:focus { border-color: #3b82f6; }
+
+        .search-container { display: flex; gap: 8px; margin-bottom: 15px; }
+        .search-container input { margin: 0; }
+        .search-btn { width: auto; padding: 0 20px; white-space: nowrap; }
+
+        .btn { width: 100%; padding: 13px; border: none; border-radius: 10px; font-weight: 700; cursor: pointer; font-size: 15px; transition: 0.2s; display: block; text-align: center; }
+        .btn-blue { background: #2563eb; color: white; }
+        .btn-teal { background: #0d9488; color: white; }
+        .btn-yellow { background: #f59e0b; color: white; margin-top: 15px; }
+        .btn-red { background: #ef4444; color: white; margin-top: 10px; }
+        .btn-gray { background: #64748b; color: white; margin-top: 10px; }
+
+        .class-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px; }
+        .class-btn { background: #3b82f6; color: white; padding: 14px; border-radius: 10px; font-weight: 700; border: none; font-size: 16px; cursor: pointer; }
+        .class-btn:active { background: #1d4ed8; }
+        .teacher-btn { background: #0d9488; grid-column: span 2; font-size: 16px; }
+
+        .id-card { border: 2px solid #e2e8f0; border-radius: 14px; padding: 16px; margin-bottom: 15px; background: #fff; text-align: center; }
+        .colorful-name { font-size: 22px; font-weight: 900; background: linear-gradient(45deg, #2563eb, #ec4899); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 10px; }
+        
+        .square-img { width: 130px; height: 130px; object-fit: cover; border-radius: 12px; border: 3px solid #3b82f6; margin: 0 auto 12px auto; display: block; background: #e2e8f0; cursor: pointer; transition: 0.2s; }
+        .square-img:hover { opacity: 0.9; transform: scale(1.02); }
+        
+        .info-box { text-align: left; background: #f8fafc; padding: 12px; border-radius: 10px; border: 1px solid #cbd5e1; font-size: 14px; line-height: 1.8; color: #334155; }
+
+        .hidden { display: none !important; }
+
+        .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); display: flex; align-items: center; justify-content: center; padding: 15px; z-index: 1000; }
+        .modal-content { background: white; padding: 20px; border-radius: 16px; width: 100%; max-width: 450px; max-height: 90vh; overflow-y: auto; }
+        label { font-size: 12px; color: #64748b; font-weight: 700; display: block; margin-top: 8px; }
+        
+        .req-card { border: 1px solid #cbd5e1; padding: 12px; border-radius: 10px; margin-bottom: 10px; background: #f8fafc; text-align: left; }
+        .req-actions { display: flex; gap: 6px; margin-top: 10px; }
+        .badge { display: inline-block; padding: 3px 8px; font-size: 11px; font-weight: 700; border-radius: 4px; margin-bottom: 5px; }
+        
+        .modal-footer { display: flex; gap: 10px; margin-top: 10px; }
+
+        #zoomModal { background: rgba(0,0,0,0.85); z-index: 2000; }
+        .zoom-card { background: white; padding: 20px; border-radius: 16px; width: 100%; max-width: 400px; text-align: center; box-shadow: 0 10px 25px rgba(0,0,0,0.3); }
+        .zoom-img { width: 220px; height: 220px; object-fit: cover; border-radius: 14px; border: 4px solid #3b82f6; margin: 0 auto 15px auto; display: block; }
+        
+        .footer-branding { text-align: center; font-size: 13px; color: #64748b; margin-top: 25px; margin-bottom: 10px; font-weight: 600; letter-spacing: 0.5px; }
+        .footer-branding span { color: #2563eb; font-weight: 800; }
+        
+        .loader { text-align: center; padding: 20px; color: #64748b; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <h1><span>GIMS</span> FIND ID</h1>
+    </div>
+
+    <div class="card" id="mainMenuCard">
+        <div class="section-title">Class</div>
+        <div class="class-grid">
+            <button class="class-btn" onclick="openClass('1')">Class 1</button>
+            <button class="class-btn" onclick="openClass('2')">Class 2</button>
+            <button class="class-btn" onclick="openClass('3')">Class 3</button>
+            <button class="class-btn" onclick="openClass('4')">Class 4</button>
+            <button class="class-btn" onclick="openClass('5')">Class 5</button>
+            <button class="class-btn" onclick="openClass('6')">Class 6</button>
+            <button class="class-btn" onclick="openClass('7')">Class 7</button>
+            <button class="class-btn" onclick="openClass('8')">Class 8</button>
+            <button class="class-btn" onclick="openClass('9')">Class 9</button>
+            <button class="class-btn" onclick="openClass('10')">Class 10</button>
+            <button class="class-btn teacher-btn" onclick="openTeachers()">👨‍🏫 Teacher ID</button>
+        </div>
+
+        <button class="btn btn-yellow" onclick="openAdminModal()">⚙️ Admin Login</button>
+    </div>
+
+    <div class="card hidden" id="classViewCard">
+        <div class="section-title" id="classTitle">Find ID</div>
+        
+        <div id="groupFilterDiv" class="hidden">
+            <label>Select Group:</label>
+            <select id="classGroupSelect" onchange="renderStudents()">
+                <option value="">-- All Groups --</option>
+                <option value="Science">Science</option>
+                <option value="Commerce">Commerce</option>
+                <option value="Humanities">Humanities</option>
+            </select>
+        </div>
+
+        <div class="search-container">
+            <input type="number" id="rollSearchInput" placeholder="Search by Roll Number...">
+            <button class="btn btn-blue search-btn" onclick="filterStudents()">Search</button>
+        </div>
+        
+        <button class="btn btn-teal" style="margin-bottom: 15px;" onclick="openReqModal('student')">➕ Request for ID</button>
+
+        <div id="studentList"><div class="loader">Loading data from Supabase...</div></div>
+
+        <button class="btn btn-gray" onclick="goBackMain()">Back to Main Menu</button>
+    </div>
+
+    <div class="card hidden" id="teacherViewCard">
+        <div class="section-title">Teacher Directory</div>
+        
+        <div class="search-container">
+            <input type="text" id="teacherSearchInput" placeholder="Search Teacher by Name...">
+            <button class="btn btn-blue search-btn" onclick="filterTeachers()">Search</button>
+        </div>
+
+        <button class="btn btn-teal" style="margin-bottom: 15px;" onclick="openReqModal('teacher')">➕ Request for Teacher ID</button>
+
+        <div id="teacherList"><div class="loader">Loading data from Supabase...</div></div>
+
+        <button class="btn btn-gray" onclick="goBackMain()">Back to Main Menu</button>
+    </div>
+
+    <div class="footer-branding">
+        Powered by <span>GM NABID</span>
+    </div>
+
+    <!-- Request Form Modal -->
+    <div id="reqModal" class="modal hidden">
+        <div class="modal-content">
+            <h3 style="margin-bottom: 10px;" id="reqModalTitle">📩 Submit ID Request</h3>
+            
+            <input type="hidden" id="reqType">
+            
+            <label>Category / Class:</label>
+            <input type="text" id="reqClassDisplay" disabled style="background:#f1f5f9; font-weight:bold;">
+            <input type="hidden" id="reqClass">
+
+            <input type="text" id="reqName" placeholder="Full Name">
+            <input type="number" id="reqPhone" placeholder="Mobile Number">
+            <input type="text" id="reqCode" placeholder="Code Name">
+            
+            <div id="studentSpecificInputs">
+                <div id="reqGroupDiv" class="hidden">
+                    <label>Group:</label>
+                    <select id="reqGroup">
+                        <option value="Science">Science</option>
+                        <option value="Commerce">Commerce</option>
+                        <option value="Humanities">Humanities</option>
+                    </select>
+                </div>
+                <input type="number" id="reqRoll" placeholder="Roll Number">
+                <label>Bench Position:</label>
+                <select id="reqBench">
+                    <option value="1st Bencher">1st Bencher</option>
+                    <option value="Mid Bencher">Mid Bencher</option>
+                    <option value="Back Bencher">Back Bencher</option>
+                </select>
+            </div>
+
+            <div id="teacherSpecificInputs" class="hidden">
+                <input type="text" id="reqDesignation" placeholder="Designation (e.g. Head Teacher)">
+                <input type="text" id="reqSubject" placeholder="Subject">
+            </div>
+
+            <label>Upload Profile Picture (From Gallery):</label>
+            <input type="file" id="reqPicFile" accept="image/*">
+            
+            <div class="modal-footer" id="reqButtonArea">
+                <button class="btn btn-teal" onclick="submitReq()">Send Request</button>
+                <button class="btn btn-gray" onclick="closeReqModal()">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Zoom ID Modal -->
+    <div id="zoomModal" class="modal hidden" onclick="closeZoomModal(event)">
+        <div class="zoom-card" onclick="event.stopPropagation()">
+            <div class="colorful-name" id="zoomName" style="font-size: 24px;"></div>
+            <img class="zoom-img" id="zoomPic" src="" alt="Zoomed Pic">
+            <div class="info-box" id="zoomInfo" style="font-size: 15px;"></div>
+            <button class="btn btn-gray" style="margin-top: 15px;" onclick="closeZoomModalBtn()">Close</button>
+        </div>
+    </div>
+
+    <!-- Admin Modal -->
+    <div id="adminModal" class="modal hidden">
+        <div class="modal-content">
+            <h3 style="margin-bottom: 10px;">⚙️ Admin Panel</h3>
+            
+            <div id="adminAuth">
+                <input type="password" id="adminPass" placeholder="Enter Admin Password...">
+                <button class="btn btn-blue" onclick="checkAdminPass()">Login</button>
+            </div>
+
+            <div id="adminContent" class="hidden">
+                <label>Manage Section:</label>
+                <select id="adminTabSelect" onchange="switchAdminTab()">
+                    <option value="requests">Pending Requests</option>
+                    <option value="database">Manage Published IDs</option>
+                </select>
+
+                <div id="adminRequestsTab">
+                    <label style="margin-top:10px;">Filter Requests by Class:</label>
+                    <select id="adminClassFilter" onchange="loadRequests()">
+                        <option value="all">All Requests</option>
+                        <option value="1">Class 1</option><option value="2">Class 2</option>
+                        <option value="3">Class 3</option><option value="4">Class 4</option>
+                        <option value="5">Class 5</option><option value="6">Class 6</option>
+                        <option value="7">Class 7</option><option value="8">Class 8</option>
+                        <option value="9">Class 9</option><option value="10">Class 10</option>
+                        <option value="teacher">Teachers</option>
+                    </select>
+
+                    <h4 style="margin: 10px 0;">Pending Requests (<span id="reqCount">0</span>)</h4>
+                    <div id="requestContainer">Loading...</div>
+                </div>
+
+                <div id="adminDatabaseTab" class="hidden">
+                    <label style="margin-top:10px;">Select Class to Manage IDs:</label>
+                    <select id="adminDbClassSelect" onchange="loadAdminDatabase()">
+                        <option value="1">Class 1</option><option value="2">Class 2</option>
+                        <option value="3">Class 3</option><option value="4">Class 4</option>
+                        <option value="5">Class 5</option><option value="6">Class 6</option>
+                        <option value="7">Class 7</option><option value="8">Class 8</option>
+                        <option value="9">Class 9</option><option value="10">Class 10</option>
+                        <option value="teacher">Teachers</option>
+                    </select>
+                    <div id="adminDbList" style="margin-top:10px; max-height:250px; overflow-y:auto;">Loading...</div>
+                </div>
+
+                <div id="adminEditSec" class="hidden" style="border-top: 2px solid #cbd5e1; padding-top: 15px; margin-top: 15px;">
+                    <h4 style="color:#0284c7;" id="editSecTitle">✏️ Edit Information</h4>
+                    <input type="hidden" id="editTypeMode" value="request">
+                    <input type="hidden" id="editRowId">
+                    
+                    <label>Name:</label>
+                    <input type="text" id="editName">
+                    <label>Mobile Number:</label>
+                    <input type="number" id="editPhone">
+                    <label>Code Name:</label>
+                    <input type="text" id="editCode">
+
+                    <div id="editStudentDiv">
+                        <label>Class:</label>
+                        <select id="editClass" onchange="toggleEditGroupDropdown()">
+                            <option value="1">Class 1</option><option value="2">Class 2</option>
+                            <option value="3">Class 3</option><option value="4">Class 4</option>
+                            <option value="5">Class 5</option><option value="6">Class 6</option>
+                            <option value="7">Class 7</option><option value="8">Class 8</option>
+                            <option value="9">Class 9</option><option value="10">Class 10</option>
+                        </select>
+                        
+                        <div id="editGroupDiv" class="hidden">
+                            <label>Group:</label>
+                            <select id="editGroup">
+                                <option value="Science">Science</option>
+                                <option value="Commerce">Commerce</option>
+                                <option value="Humanities">Humanities</option>
+                            </select>
+                        </div>
+
+                        <label>Roll Number:</label>
+                        <input type="number" id="editRoll">
+                        <label>Bench Position:</label>
+                        <select id="editBench">
+                            <option value="1st Bencher">1st Bencher</option>
+                            <option value="Mid Bencher">Mid Bencher</option>
+                            <option value="Back Bencher">Back Bencher</option>
+                        </select>
+                    </div>
+
+                    <div id="editTeacherDiv" class="hidden">
+                        <label>Designation:</label>
+                        <input type="text" id="editDesignation">
+                        <label>Subject:</label>
+                        <input type="text" id="editSubject">
+                    </div>
+
+                    <label>Change Picture (From Gallery):</label>
+                    <input type="file" id="editPicFile" accept="image/*">
+
+                    <button class="btn btn-blue" style="background:#16a34a; margin-top:10px;" onclick="saveEditedData()">💾 Save Changes</button>
+                    <button class="btn btn-gray" onclick="cancelEdit()">Cancel Edit</button>
+                </div>
+            </div>
+
+            <button class="btn btn-gray" style="margin-top:15px;" onclick="closeAdminModal()">Close Admin Panel</button>
+        </div>
+    </div>
+
+    <script>
+        // --- SUPABASE CONFIGURATION ---
+        const SUPABASE_URL = 'https://bsvjkoysjtkyduajdmot.supabase.co'; 
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJzdmprb3lzanRreWR1YWpkbW90Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTAzNTIwNjAsImV4cCI6MjEwNTkyODA2MH0.jme3LJxIoe2VDf07nM2TDwV5u_Ym7fNpGZtX3li8u8o';
+        
+        let supabaseClient = null;
+        try {
+            if (window.supabase) {
+                supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+            }
+        } catch (e) {
+            console.error("Supabase init error:", e);
+        }
+
+        const TABLE_NAME = 'ids';
+
+        async function fetchAllData() {
+            if (!supabaseClient) return [];
+            try {
+                let { data, error } = await supabaseClient.from(TABLE_NAME).select('*');
+                if (error) {
+                    console.error("Error fetching data:", error);
+                    return [];
+                }
+                return data || [];
+            } catch (err) {
+                console.error("Supabase connection exception:", err);
+                return [];
+            }
+        }
+
+        let currentSelectedClass = '';
+
+        async function openClass(cls) {
+            currentSelectedClass = cls;
+            document.getElementById('mainMenuCard').classList.add('hidden');
+            document.getElementById('classViewCard').classList.remove('hidden');
+            document.getElementById('classTitle').innerText = `Class ${cls} - Find ID`;
+            document.getElementById('rollSearchInput').value = '';
+
+            let groupDiv = document.getElementById('groupFilterDiv');
+            if (cls === '9' || cls === '10') {
+                groupDiv.classList.remove('hidden');
+                document.getElementById('classGroupSelect').value = '';
+            } else {
+                groupDiv.classList.add('hidden');
+            }
+
+            await renderStudents();
+        }
+
+        async function openTeachers() {
+            document.getElementById('mainMenuCard').classList.add('hidden');
+            document.getElementById('teacherViewCard').classList.remove('hidden');
+            document.getElementById('teacherSearchInput').value = '';
+            await renderTeachers();
+        }
+
+        function goBackMain() {
+            document.getElementById('classViewCard').classList.add('hidden');
+            document.getElementById('teacherViewCard').classList.add('hidden');
+            document.getElementById('mainMenuCard').classList.remove('hidden');
+        }
+
+        async function renderStudents(searchRoll = '') {
+            let container = document.getElementById('studentList');
+            container.innerHTML = '<div class="loader">Loading...</div>';
+            
+            let selectedGroup = (currentSelectedClass === '9' || currentSelectedClass === '10') ? document.getElementById('classGroupSelect').value : '';
+
+            let allData = await fetchAllData();
+            let list = allData.filter(s => s.status === 'approved' && s.type === 'student' && s.class === currentSelectedClass);
+
+            if (selectedGroup) {
+                list = list.filter(s => s.group === selectedGroup);
+            }
+
+            list.sort((a, b) => parseInt(a.roll || 0) - parseInt(b.roll || 0));
+
+            if (searchRoll) {
+                list = list.filter(s => s.roll && s.roll.toString().includes(searchRoll));
+            }
+
+            if (list.length === 0) {
+                container.innerHTML = '<p style="text-align:center; color:#94a3b8; padding:15px;">No Student ID found.</p>';
+                return;
+            }
+
+            container.innerHTML = '';
+            list.forEach((s) => {
+                let div = document.createElement('div');
+                div.className = 'id-card';
+                let encodedObj = encodeURIComponent(JSON.stringify(s));
+                div.innerHTML = `
+                    <div class="colorful-name">${s.name || ''}</div>
+                    <img class="square-img" src="${s.pic || 'https://via.placeholder.com/150'}" alt="Pic" onclick="zoomCard('${encodedObj}')">
+                    <div class="info-box">
+                        <p><strong>Mobile Number:</strong> ${s.phone || 'N/A'}</p>
+                        <p><strong>Code Name:</strong> ${s.code || 'N/A'}</p>
+                        <p><strong>Roll:</strong> ${s.roll || ''}</p>
+                        ${s.group ? `<p><strong>Group:</strong> ${s.group}</p>` : ''}
+                        <p><strong>Bench Position:</strong> ${s.bench || ''}</p>
+                    </div>
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        async function filterStudents() {
+            let roll = document.getElementById('rollSearchInput').value;
+            await renderStudents(roll);
+        }
+
+        async function renderTeachers(searchName = '') {
+            let container = document.getElementById('teacherList');
+            container.innerHTML = '<div class="loader">Loading...</div>';
+            
+            let allData = await fetchAllData();
+            let list = allData.filter(t => t.status === 'approved' && t.type === 'teacher');
+
+            if (searchName) {
+                list = list.filter(t => t.name && t.name.toLowerCase().includes(searchName.toLowerCase()));
+            }
+
+            if (list.length === 0) {
+                container.innerHTML = '<p style="text-align:center; color:#94a3b8; padding:15px;">No Teacher ID found.</p>';
+                return;
+            }
+
+            container.innerHTML = '';
+            list.forEach((t) => {
+                let div = document.createElement('div');
+                div.className = 'id-card';
+                let encodedObj = encodeURIComponent(JSON.stringify(t));
+                div.innerHTML = `
+                    <div class="colorful-name">${t.name || ''}</div>
+                    <img class="square-img" src="${t.pic || 'https://via.placeholder.com/150'}" alt="Pic" onclick="zoomCard('${encodedObj}')">
+                    <div class="info-box">
+                        <p><strong>Mobile Number:</strong> ${t.phone || 'N/A'}</p>
+                        <p><strong>Code Name:</strong> ${t.code || 'N/A'}</p>
+                        <p><strong>Designation:</strong> ${t.designation || 'Teacher'}</p>
+                        <p><strong>Subject:</strong> ${t.subject || 'N/A'}</p>
+                    </div>
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        async function filterTeachers() {
+            let name = document.getElementById('teacherSearchInput').value;
+            await renderTeachers(name);
+        }
+
+        function zoomCard(encodedObj) {
+            let item = JSON.parse(decodeURIComponent(encodedObj));
+            document.getElementById('zoomName').innerText = item.name || '';
+            document.getElementById('zoomPic').src = item.pic || 'https://via.placeholder.com/150';
+            
+            let infoHTML = `<p><strong>Mobile Number:</strong> ${item.phone || 'N/A'}</p>
+                            <p><strong>Code Name:</strong> ${item.code || 'N/A'}</p>`;
+            if(item.type === 'teacher') {
+                infoHTML += `<p><strong>Designation:</strong> ${item.designation || 'Teacher'}</p>
+                             <p><strong>Subject:</strong> ${item.subject || 'N/A'}</p>`;
+            } else {
+                infoHTML += `<p><strong>Roll:</strong> ${item.roll || ''}</p>`;
+                if(item.group) infoHTML += `<p><strong>Group:</strong> ${item.group}</p>`;
+                infoHTML += `<p><strong>Bench Position:</strong> ${item.bench || ''}</p>`;
+            }
+            document.getElementById('zoomInfo').innerHTML = infoHTML;
+            document.getElementById('zoomModal').classList.remove('hidden');
+        }
+
+        function closeZoomModalBtn() {
+            document.getElementById('zoomModal').classList.add('hidden');
+        }
+
+        function closeZoomModal(event) {
+            if(event.target.id === 'zoomModal') {
+                document.getElementById('zoomModal').classList.add('hidden');
+            }
+        }
+
+        function openReqModal(type) {
+            document.getElementById('reqType').value = type;
+            document.getElementById('reqName').value = '';
+            document.getElementById('reqPhone').value = '';
+            document.getElementById('reqCode').value = '';
+            document.getElementById('reqRoll').value = '';
+            document.getElementById('reqPicFile').value = '';
+
+            document.getElementById('reqButtonArea').innerHTML = `
+                <button class="btn btn-teal" onclick="submitReq()">Send Request</button>
+                <button class="btn btn-gray" onclick="closeReqModal()">Close</button>
+            `;
+
+            if (type === 'student') {
+                document.getElementById('reqModalTitle').innerText = `Request ID for Class ${currentSelectedClass}`;
+                document.getElementById('reqClassDisplay').value = `Class ${currentSelectedClass}`;
+                document.getElementById('reqClass').value = currentSelectedClass;
+                document.getElementById('studentSpecificInputs').classList.remove('hidden');
+                document.getElementById('teacherSpecificInputs').classList.add('hidden');
+
+                let reqGroupDiv = document.getElementById('reqGroupDiv');
+                if (currentSelectedClass === '9' || currentSelectedClass === '10') {
+                    reqGroupDiv.classList.remove('hidden');
+                } else {
+                    reqGroupDiv.classList.add('hidden');
+                }
+            } else {
+                document.getElementById('reqModalTitle').innerText = `Request Teacher ID`;
+                document.getElementById('reqClassDisplay').value = `Teacher Directory`;
+                document.getElementById('reqClass').value = `teacher`;
+                document.getElementById('studentSpecificInputs').classList.add('hidden');
+                document.getElementById('teacherSpecificInputs').classList.remove('hidden');
+            }
+            document.getElementById('reqModal').classList.remove('hidden');
+        }
+
+        function closeReqModal() { document.getElementById('reqModal').classList.add('hidden'); }
+
+        async function submitReq() {
+            if (!supabaseClient) return alert('Database connection not ready!');
+            let type = document.getElementById('reqType').value;
+            let picFile = document.getElementById('reqPicFile').files[0];
+            let compressedPic = picFile ? await compressImage(picFile) : '';
+
+            let reqObj = {
+                type: type,
+                name: document.getElementById('reqName').value,
+                phone: document.getElementById('reqPhone').value,
+                code: document.getElementById('reqCode').value,
+                pic: compressedPic,
+                status: 'pending'
+            };
+
+            if (type === 'student') {
+                reqObj.class = document.getElementById('reqClass').value;
+                reqObj.group = (reqObj.class === '9' || reqObj.class === '10') ? document.getElementById('reqGroup').value : '';
+                reqObj.roll = document.getElementById('reqRoll').value;
+                reqObj.bench = document.getElementById('reqBench').value;
+                if (!reqObj.name || !reqObj.roll) return alert('Name and Roll are required!');
+            } else {
+                reqObj.designation = document.getElementById('reqDesignation').value;
+                reqObj.subject = document.getElementById('reqSubject').value;
+                if (!reqObj.name) return alert('Teacher Name is required!');
+            }
+
+            let { error } = await supabaseClient.from(TABLE_NAME).insert([reqObj]);
+            if (error) {
+                console.error(error);
+                alert('Failed to send request to Supabase!');
+                return;
+            }
+
+            closeReqModal();
+            goBackMain();
+            alert('Request sent successfully to cloud database!');
+        }
+
+        function openAdminModal() { 
+            document.getElementById('adminModal').classList.remove('hidden'); 
+            document.getElementById('adminPass').value = '';
+            document.getElementById('adminAuth').classList.remove('hidden');
+            document.getElementById('adminContent').classList.add('hidden');
+            cancelEdit();
+        }
+        function closeAdminModal() { 
+            document.getElementById('adminModal').classList.add('hidden'); 
+        }
+
+        function checkAdminPass() {
+            if (document.getElementById('adminPass').value === 'GMN4B1D') {
+                document.getElementById('adminAuth').classList.add('hidden');
+                document.getElementById('adminContent').classList.remove('hidden');
+                document.getElementById('adminTabSelect').value = 'requests';
+                switchAdminTab();
+            } else {
+                alert('Incorrect Password!');
+            }
+        }
+
+        function switchAdminTab() {
+            let tab = document.getElementById('adminTabSelect').value;
+            cancelEdit();
+            if (tab === 'requests') {
+                document.getElementById('adminRequestsTab').classList.remove('hidden');
+                document.getElementById('adminDatabaseTab').classList.add('hidden');
+                loadRequests();
+            } else {
+                document.getElementById('adminRequestsTab').classList.add('hidden');
+                document.getElementById('adminDatabaseTab').classList.remove('hidden');
+                loadAdminDatabase();
+            }
+        }
+
+        async function loadRequests() {
+            let filter = document.getElementById('adminClassFilter').value;
+            let container = document.getElementById('requestContainer');
+            container.innerHTML = 'Loading...';
+            
+            let allData = await fetchAllData();
+            let requests = allData.filter(r => r.status === 'pending');
+            
+            let filtered = requests.filter(r => {
+                if (filter === 'all') return true;
+                if (filter === 'teacher') return r.type === 'teacher';
+                return r.class === filter;
+            });
+
+            document.getElementById('reqCount').innerText = filtered.length;
+
+            if (filtered.length === 0) {
+                container.innerHTML = '<p style="font-size: 13px; color: #94a3b8;">No pending requests found.</p>';
+                return;
+            }
+
+            container.innerHTML = '';
+            filtered.forEach((r) => {
+                let div = document.createElement('div');
+                div.className = 'req-card';
+                let isTeacher = r.type === 'teacher';
+
+                div.innerHTML = `
+                    <span class="badge" style="background:${isTeacher ? '#ccfbf1':'#dbeafe'}; color:${isTeacher ? '#0f766e':'#1e40af'}">
+                        ${isTeacher ? 'TEACHER' : 'CLASS ' + r.class + (r.group ? ' ('+r.group+')' : '')}
+                    </span>
+                    <div><strong>${r.name || ''}</strong> (${isTeacher ? (r.designation||'Teacher') : 'Roll: ' + (r.roll||'')})</div>
+                    <div class="req-actions">
+                        <button class="btn btn-blue" style="padding:6px 10px; font-size:12px;" onclick="acceptDirect(${r.id})">Accept</button>
+                        <button class="btn btn-teal" style="padding:6px 10px; font-size:12px;" onclick="openEditForm(${r.id}, 'request')">Edit</button>
+                        <button class="btn btn-red" style="padding:6px 10px; font-size:12px; margin-top:0;" onclick="rejectReq(${r.id})">Reject</button>
+                    </div>
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        async function loadAdminDatabase() {
+            let cls = document.getElementById('adminDbClassSelect').value;
+            let container = document.getElementById('adminDbList');
+            container.innerHTML = 'Loading...';
+            
+            let allData = await fetchAllData();
+            let list = allData.filter(item => item.status === 'approved');
+
+            if (cls === 'teacher') {
+                list = list.filter(item => item.type === 'teacher');
+            } else {
+                list = list.filter(item => item.type === 'student' && item.class === cls);
+                list.sort((a, b) => parseInt(a.roll || 0) - parseInt(b.roll || 0));
+            }
+
+            if (list.length === 0) {
+                container.innerHTML = '<p style="font-size: 13px; color: #94a3b8; text-align:center;">No IDs published here.</p>';
+                return;
+            }
+
+            container.innerHTML = '';
+            list.forEach((item) => {
+                let div = document.createElement('div');
+                div.className = 'req-card';
+                div.innerHTML = `
+                    <div><strong>${item.name || ''}</strong> ${cls === 'teacher' ? '' : '(Roll: '+(item.roll||'')+')'}</div>
+                    <div class="req-actions">
+                        <button class="btn btn-teal" style="padding:6px 10px; font-size:12px;" onclick="openEditForm(${item.id}, 'database')">✏️ Edit</button>
+                        <button class="btn btn-red" style="padding:6px 10px; font-size:12px; margin-top:0;" onclick="deleteDbItem(${item.id})">🗑️ Delete</button>
+                    </div>
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        async function acceptDirect(rowId) {
+            if (!supabaseClient) return;
+            let { error } = await supabaseClient.from(TABLE_NAME).update({ status: 'approved' }).eq('id', rowId);
+            if (error) {
+                alert('Error accepting request');
+                console.error(error);
+            } else {
+                loadRequests();
+            }
+        }
+
+        async function openEditForm(rowId, mode) {
+            document.getElementById('editTypeMode').value = mode;
+            document.getElementById('editRowId').value = rowId;
+            
+            let allData = await fetchAllData();
+            let targetObj = allData.find(i => i.id === rowId);
+
+            if (!targetObj) {
+                alert('Item not found.');
+                return;
+            }
+
+            if (mode === 'request') {
+                document.getElementById('editSecTitle').innerText = "✏️ Edit Request Information";
+            } else {
+                document.getElementById('editSecTitle').innerText = "✏️ Edit Published ID";
+            }
+
+            document.getElementById('editName').value = targetObj.name || '';
+            document.getElementById('editPhone').value = targetObj.phone || '';
+            document.getElementById('editCode').value = targetObj.code || '';
+
+            let isTeacher = (targetObj.type === 'teacher');
+            if (!isTeacher) {
+                document.getElementById('editClass').value = targetObj.class || '1';
+                document.getElementById('editRoll').value = targetObj.roll || '';
+                document.getElementById('editBench').value = targetObj.bench || '1st Bencher';
+                document.getElementById('editStudentDiv').classList.remove('hidden');
+                document.getElementById('editTeacherDiv').classList.add('hidden');
+                
+                toggleEditGroupDropdown();
+                if (targetObj.group) {
+                    document.getElementById('editGroup').value = targetObj.group;
+                }
+            } else {
+                document.getElementById('editDesignation').value = targetObj.designation || '';
+                document.getElementById('editSubject').value = targetObj.subject || '';
+                document.getElementById('editStudentDiv').classList.add('hidden');
+                document.getElementById('editTeacherDiv').classList.remove('hidden');
+            }
+
+            document.getElementById('adminEditSec').classList.remove('hidden');
+        }
+
+        function toggleEditGroupDropdown() {
+            let cls = document.getElementById('editClass').value;
+            let groupDiv = document.getElementById('editGroupDiv');
+            if (cls === '9' || cls === '10') {
+                groupDiv.classList.remove('hidden');
+            } else {
+                groupDiv.classList.add('hidden');
+            }
+        }
+
+        function cancelEdit() { document.getElementById('adminEditSec').classList.add('hidden'); }
+
+        async function saveEditedData() {
+            if (!supabaseClient) return;
+            let mode = document.getElementById('editTypeMode').value;
+            let rowId = parseInt(document.getElementById('editRowId').value);
+            let newPicFile = document.getElementById('editPicFile').files[0];
+
+            let allData = await fetchAllData();
+            let currentItem = allData.find(i => i.id === rowId);
+            if (!currentItem) return alert('Item not found');
+
+            let finalPic = newPicFile ? await compressImage(newPicFile) : currentItem.pic;
+
+            let updatedFields = {
+                name: document.getElementById('editName').value,
+                phone: document.getElementById('editPhone').value,
+                code: document.getElementById('editCode').value,
+                pic: finalPic
+            };
+
+            if (currentItem.type === 'student') {
+                let clsVal = document.getElementById('editClass').value;
+                updatedFields.class = clsVal;
+                updatedFields.group = (clsVal === '9' || clsVal === '10') ? document.getElementById('editGroup').value : '';
+                updatedFields.roll = document.getElementById('editRoll').value;
+                updatedFields.bench = document.getElementById('editBench').value;
+            } else {
+                updatedFields.designation = document.getElementById('editDesignation').value;
+                updatedFields.subject = document.getElementById('editSubject').value;
+            }
+
+            let { error } = await supabaseClient.from(TABLE_NAME).update(updatedFields).eq('id', rowId);
+            if (error) {
+                console.error(error);
+                alert('Update failed!');
+                return;
+            }
+
+            cancelEdit();
+            if (mode === 'request') {
+                loadRequests();
+            } else {
+                loadAdminDatabase();
+            }
+        }
+
+        async function rejectReq(rowId) {
+            if (!supabaseClient) return;
+            let { error } = await supabaseClient.from(TABLE_NAME).delete().eq('id', rowId);
+            if (error) {
+                alert('Failed to delete/reject');
+            } else {
+                loadRequests();
+            }
+        }
+
+        async function deleteDbItem(rowId) {
+            if (!supabaseClient) return;
+            if (confirm('Are you sure you want to delete this published ID?')) {
+                let { error } = await supabaseClient.from(TABLE_NAME).delete().eq('id', rowId);
+                if (error) {
+                    alert('Failed to delete');
+                } else {
+                    loadAdminDatabase();
+                }
+            }
+        }
+
+        const compressImage = (file, maxWidth = 300, maxHeight = 300, quality = 0.6) => {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.readAsDataURL(file);
+                reader.onload = event => {
+                    const img = new Image();
+                    img.src = event.target.result;
+                    img.onload = () => {
+                        const canvas = document.createElement('canvas');
+                        let width = img.width;
+                        let height = img.height;
+                        if (width > height) {
+                            if (width > maxWidth) {
+                                height *= maxWidth / width;
+                                width = maxWidth;
+                            }
+                        } else {
+                            if (height > maxHeight) {
+                                width *= maxHeight / height;
+                                height = maxHeight;
+                            }
+                        }
+                        canvas.width = width;
+                        canvas.height = height;
+                        const ctx = canvas.getContext('2d');
+                        ctx.drawImage(img, 0, 0, width, height);
+                        resolve(canvas.toDataURL('image/jpeg', quality));
+                    };
+                    img.onerror = error => reject(error);
+                };
+                reader.onerror = error => reject(error);
+            });
+        };
+    </script>
+</body>
+</html>
